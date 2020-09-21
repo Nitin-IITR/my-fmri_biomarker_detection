@@ -1,246 +1,45 @@
-###############################################################################
-###############################################################################
-####################### P-value ########################################
-
-################################################################################
-################################################################################
-random.seed(2)
-schizo_test_index=random.sample(range(0,45),12)
-random.seed(3)
-healthy_test_index=random.sample(range(0,45),12) # 0 to 45 not 45 to 90 because enumerate index always start from 0
-
-list_for_0_to_44= list(np.linspace(0,44,45,dtype=np.int32))
-list_for_45_to_89= list(np.linspace(0,44,45,dtype=np.int32)) # 0 to 45 not 45 to 90 because enumerate index always start from 0
-
-
-schizo_train_index = [j for i, j in enumerate(list_for_0_to_44) if i not in schizo_test_index]
-healthy_train_index = [j for i, j in enumerate(list_for_45_to_89) if i not in healthy_test_index]
-
-################################################################################
-################################################################################
-# Test data
-schizo_corr_test= [j for i, j in enumerate(correlations[0:45]) if i not in schizo_train_index]
-healthy_corr_test= [j for i, j in enumerate(correlations[45:90]) if i not in healthy_train_index]
-correlations_test=schizo_corr_test+healthy_corr_test
-############################################
-# Train data
-corr_schizo= [j for i, j in enumerate(correlations[0:45]) if i not in schizo_test_index]
-corr_healthy= [j for i, j in enumerate(correlations[45:90]) if i not in healthy_test_index]
-corr_all= corr_schizo+corr_healthy
-
-
-corr_t_test= sp.stats.ttest_ind(np.array(corr_schizo),np.array(corr_healthy),axis=0)
-Corr_t_stats= corr_t_test[0]
-Corr_p_stats= corr_t_test[1]
-
-
-
-corr_t_frame=pd.DataFrame(columns=['t_value','i_value','j_value'])
-corr_p_frame=pd.DataFrame(columns=['p_value','i_value','j_value'])
-
-for i in range(len(Corr_t_stats)):
-    for j in range(i+1,len(Corr_t_stats)):
-        
-        if abs(Corr_t_stats[i][j]) > 2 :
-            tem_frame1=pd.DataFrame({'t_value':[Corr_t_stats[i][j]],'i_value':[i],'j_value':[j]})
-            corr_t_frame=corr_t_frame.append(tem_frame1)
-  
-corr_t_frame=corr_t_frame.reset_index(drop=True)
-
-i_value= corr_t_frame['i_value']
-j_value= corr_t_frame['j_value']
-
-len(i_value)
-    
-################### %%%%%%%
-    
-
-main_corr_list=[]
-
-for i in range(len(corr_all)):
-    corr_one_person=corr_all[i]
-    a=[]
-    for l,k in zip(i_value,j_value):
-        a.append(corr_one_person[l,k])
-        
-    main_corr_list.append(a)
-    
-main_corr_frame=pd.DataFrame(main_corr_list)
-
-
-
-    
-####################################################################################
-
-df=main_corr_frame
-X= df.iloc[:,:].values
-Y = np.concatenate((np.zeros(len(corr_schizo)), np.ones(len(corr_healthy))))
-
-
-##################################################################
-################################################################## 
-
-main_corr_list_test=[]
-
-for i in range(len(correlations_test)):
-    corr_one_person_test=correlations_test[i]
-    a=[]
-    for l,k in zip(i_value,j_value):
-        a.append(corr_one_person_test[l,k])
-        
-    main_corr_list_test.append(a)
-    
-#####################            
-main_corr_frame_test=pd.DataFrame(main_corr_list_test)
-
-X_test = main_corr_frame_test.iloc[:,:].values
-Y_test = np.concatenate((np.zeros(len(schizo_corr_test)), np.ones(len(healthy_corr_test))))
-
-
-
-
-
-
-
-
-
-###############################################################################
-###############################################################################
-###############################################################################
-
-####################################################################################
-####################################################################################
-####################################################################################
-############################# Forward and Backward Feature Selection  ##############
-
-# forward=True,floating=False   :  This is for "Forward Selection"             (
-# forward=False,floating=False  :  This is for "Backward Selection"            
-# forward=True,floating=True    :  This is for "Stepwise forward Regression" 
-# forward=False,floating=True   :  This is for "Stepwise backward Regression"
-
-####################################################################################
-
-#importing the necessary libraries
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-from sklearn.svm import SVC
-from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
-
-
-
-sfs = SFS(SVC(kernel ='rbf',C=1,gamma='auto'),
-           k_features=100,                # no. of features to select
-           forward=True,floating=True,      # This is for "Stepwise Selection",  For "Backward Selection" Make both of them False
-           scoring = 'accuracy',            # for classification, it can be accuracy, precision, recall, f1-score, etc.
-           cv =4, n_jobs=-1)                          # cv is k fold cross validation
-
- 
-
-sfs.fit(X, Y)
- 
-#sfs.k_score_
- 
-sfs_dataframe=pd.DataFrame.from_dict(sfs.get_metric_dict()).T
-#sfs_dataframe.to_csv(r'D:\Nitin Python\fMRI ROI\Schizo and Healthy\ROI files needed\feature_ind_and_acc_for_cv_4_schizo_corr_t_test_159Regions_Stepwise_forward_selection_mlxtend.csv')
-
-
-
-fig1 = plot_sfs(sfs.get_metric_dict(), kind='std_dev')
-
-plt.ylim([0.8, 1])
-plt.title('Sequential Forward Selection (w. StdDev)')
-plt.grid()
-plt.show()
- 
-     
-#    s=sfs.subsets_
-#indexes=list(sfs.k_feature_idx_)
-
-    
-
-sfs_dataframe_sorted= sfs_dataframe.sort_values(by=['avg_score','feature_idx'], ascending=[False,False])
-#acs_sorted= acs_sorted.reset_index()
-
-sfs_dataframe_sorted.to_csv(r'D:\Nitin Python\fMRI ROI\Schizo and Healthy\ROI files needed\feature_ind_and_acc_for_cv_4_schizo_corr_t_test_159Regions_Stepwise_forward_selection_mlxtend.csv')
-
-#sfs_frame_sorted=pd.read_csv(r'D:\Nitin Python\fMRI ROI\Schizo and Healthy\ROI files needed\feature_ind_and_acc_for_cv_4_schizo_corr_t_test_159Regions_Stepwise_forward_selection_mlxtend.csv')
-
-
-###########################################################################################
-
-# Plotting number of feature v/s accuracy
-from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
+import pandas as pd
+import glob
 import matplotlib.pyplot as plt
-fig1 = plot_sfs(sfs.get_metric_dict(), kind='std_dev')
-plt.title('Sequential Forward Selection (w. StdErr)')
-plt.grid()
-plt.show()
+import numpy as np
+import scipy as sp
+import nilearn
+from nilearn import plotting
+from nilearn import image
+from nilearn import datasets
+import nibabel as nib
+import matplotlib.image as mpimg
+import h5py
+import imageio
+import scipy.misc as spmi
+import nibabel as nib
+from nilearn.image import get_data
+import os
+import random
+from random import seed
+from nideconv.utils import roi
+from itertools import chain
+from nilearn.regions import Parcellations
 
 
+df=series_frame
 
-
-
-
-
-
-
-
-
-
-###########################################################################################
-###########################################################################################
-#####################  Testing ##########################################
-
-all_acc=[]
-features_index=[]
-
-X_train=X
-Y_train=Y
-
-Index_lists= list(sfs_dataframe_sorted.iloc[0:63,1].values)
-
-for feat_index in Index_lists:
-
-
-    ############################################
-    X_train= X[:, list(map(int, feat_index[1:-1].split(', ')))]
-    X_test1= X_test[:, list(map(int, feat_index[1:-1].split(', ')))]
+list_train=list( np.concatenate((np.linspace(0,16*150-1,16*150,dtype=np.int32),np.linspace(20*150,36*150-1,16*150,dtype=np.int32))) )
     
-    from sklearn.preprocessing import StandardScaler
-    sc_X = StandardScaler()
-    X_train = sc_X.fit_transform(X_train)
-    X_test1= sc_X.transform(X_test1)
-    
-    
-    from sklearn.svm import SVC
-    svc_reg = SVC(kernel ='rbf',C=1,gamma='auto')
-    svc_reg.fit(X_train,Y_train)
-
-    Y_pred = svc_reg.predict(X_test1)
-
-    
-    from sklearn.metrics import confusion_matrix
-    cmf= confusion_matrix(Y_test,Y_pred)
-    
-    from sklearn.metrics import accuracy_score
-    acs=accuracy_score(Y_test,Y_pred)
- 
-    
-    features_index.append(feat_index)
-    
-    all_acc.append((acs*100))
-    
+X= df.iloc[list_train,:].values
+Y = np.concatenate((np.zeros(int(len(X)/2)), np.ones(int(len(X)/2))))
 
 
+list_test=list( np.concatenate((np.linspace(16*150,20*150-1,4*150,dtype=np.int32),np.linspace(36*150,40*150-1,4*150,dtype=np.int32))) )    
 
+X_test= df.iloc[list_test,:].values
+Y_test = np.concatenate((np.zeros(int(len(X_test)/2)), np.ones(int(len(X_test)/2))))
 
+####################################################################################
+df_train1 = df.iloc[list_train,:].reset_index(drop=True)
 
-
-
-
-
-
-
-
+schizo_series_all222 = df_train1[0:16*150].reset_index(drop=True)
+healthy_series_all222= df_train1[16*150:32*150].reset_index(drop=True)
 
 
 
@@ -650,6 +449,329 @@ acs_sorted= acs_sorted.reset_index()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################################################
+####################################################################################
+####################################################################################
+############################# Forward and Backward Feature Selection  ##############
+
+# forward=True,floating=False   :  This is for "Forward Selection"
+# forward=False,floating=False  :  This is for "Backward Selection" 
+# forward=True,floating=True    :  This is for "Stepwise Regression" 
+
+####################################################################################
+
+#importing the necessary libraries
+from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+from sklearn.svm import SVC
+
+all_acc=[]
+thresholds_C=[]
+no_of_features=[]
+
+for n_features in [40,60,80,100]:
+    
+   #####################################################################################
+   ###################### Data Separatio to Train and Cross Validation     #############
+   ######################   ######################      ###################### 
+    
+    ############################################
+    import random
+    
+    schizo_series_test =pd.DataFrame([])
+    randomlist = random.sample(range(0,15),4)
+    
+    for i in range(0,4):
+    
+        n=randomlist[i]
+        schizo_series_test=pd.concat([schizo_series_test,schizo_series_all222[150*n:150*(n+1)] ])
+    print(randomlist)
+    
+    index_drop = list(schizo_series_test.index)
+    schizo_series_train=schizo_series_all222.drop(index_drop)
+    schizo_series_train=schizo_series_train.reset_index(drop=True)
+    
+    ################## HEALTHY DATA PREP ######################################
+    
+    import random
+    
+    healthy_series_test =pd.DataFrame([])
+    randomlist = random.sample(range(0,15),4)    
+    
+    for i in range(0,4):
+    
+        n=randomlist[i]
+        healthy_series_test=pd.concat([healthy_series_test,healthy_series_all222[150*n:150*(n+1)] ])
+    print(randomlist)
+    
+    index_drop = list(healthy_series_test.index)
+    healthy_series_train=healthy_series_all222.drop(index_drop)
+    healthy_series_train=healthy_series_train.reset_index(drop=True)
+    
+    #############################################################################
+    #############################################################################
+    
+    ####### TRAIN DATA #############################
+    
+    df_trainX = schizo_series_train.append(healthy_series_train)
+    df_trainX=df_trainX.reset_index(drop=True)
+    df_trainY = pd.DataFrame(np.concatenate((np.zeros(len(schizo_series_train)), np.ones(len(healthy_series_train)))))
+    
+    
+    df_train = pd.concat([df_trainX, df_trainY], axis=1, sort=False)
+    
+    ####### TEST DATA #############################
+    
+    df_testX = schizo_series_test.append(healthy_series_test)
+    df_testX=df_testX.reset_index(drop=True)
+    df_testY = pd.DataFrame(np.concatenate((np.zeros(len(schizo_series_test)), np.ones(len(healthy_series_test)))))
+    
+    df_test = pd.concat([df_testX, df_testY], axis=1, sort=False)
+ 
+    ############################################################
+        
+#    df_train = df_train.sample(frac=1).reset_index(drop=True)
+    X_train= df_train.iloc[:,0:len(df_train.columns)-1].values
+    Y_train=df_train.iloc[:,len(df_train.columns)-1].values
+    
+#    df_test = df_test.sample(frac=1).reset_index(drop=True)
+    X_crossv= df_test.iloc[:,0:len(df_test.columns)-1].values
+    Y_test=df_test.iloc[:,len(df_test.columns)-1].values
+    
+    
+    from sklearn.preprocessing import StandardScaler
+    sc_X = StandardScaler()
+    X_train = sc_X.fit_transform(X_train)
+    X_crossv= sc_X.transform(X_crossv)
+    
+    ######################   ######################      ###################### 
+    ######################   ######################      ###################### 
+    from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+    # Sequential Forward Selection(sfs)
+    sfs = SFS(SVC(kernel ='rbf',C=1,gamma='auto'),
+               k_features=n_features,                # no. of features to select
+               forward=True,floating=True, # This is for "Forward Selection",  For "Backward Selection" Make both of them False, For "Stepwise Regression" make them both False
+               scoring = 'accuracy',            # for classification, it can be accuracy, precision, recall, f1-score, etc.
+               cv = 0)                          # cv is k fold cross validation
+
+
+
+#    s=sfs.subsets_
+    ##################   Cross Validation  SVM  ############################################
+
+    sfs.fit(X_train, Y_train)
+    X_indices= list(sfs.k_feature_names_)   # to get the final set of features
+    
+    X_indices1=[]
+    for j in range(len(X_indices)):
+        X_indices1.append(int(X_indices[j]))
+    
+    
+    ############################################
+    X_train= X_train[:, X_indices1]
+    X_crossv= X_crossv[:, X_indices1]
+    
+    ############################################
+       
+    
+    from sklearn.svm import SVC
+    svc_reg = SVC(kernel ='rbf',C=1,gamma='auto')
+    svc_reg.fit(X_train,Y_train.ravel())
+    
+    ####################### Testing data ###################
+    df_train2=df_train1.iloc[:, X_indices1]
+    
+    total_subjects=32
+    Y_avg_predict=[]
+    Y_avg_true= np.concatenate((np.zeros(int(total_subjects//2)), np.ones(int(total_subjects//2))))
+    
+    for total_sub in range(total_subjects):
+        
+        Y_pred = svc_reg.predict(df_train2[150*total_sub : 150*(total_sub+1)].iloc[:,:].values)
+        Y_avg_predict.append(np.mean(Y_pred))
+    
+    
+    
+    for h in range(len(Y_avg_predict)):
+        if Y_avg_predict[h]<0.5:
+            Y_avg_predict[h]=0
+        
+        else:
+            Y_avg_predict[h]=1
+            
+            
+    from sklearn.metrics import confusion_matrix
+    cmf= confusion_matrix(Y_avg_predict,Y_avg_true)
+
+    from sklearn.metrics import accuracy_score
+    scores_avg = accuracy_score(Y_avg_predict,Y_avg_true) 
+   
+
+    all_acc.append(scores_avg)
+    thresholds_C.append(X_indices1)
+    no_of_features.append(n_features)
+    
+    
+
+
+    
+ 
+
+acs_part=all_acc
+acs_and_thers= pd.DataFrame({'acs': acs_part,'X_index': thresholds_C,'features':no_of_features})
+acs_sorted= acs_and_thers.sort_values(by=['acs','features'], ascending=[False,True])
+acs_sorted= acs_sorted.reset_index()
+
+acs_sorted.to_csv(r'D:\Nitin Python\fMRI ROI\Schizo and Healthy\ROI files needed\n_features_and_acc_for_schizo_series_222Regions_Stepwise_feature_selection_mlxtend.csv')
+
+
+
+###########################################################################################
+
+# Plotting number of feature v/s accuracy
+from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
+import matplotlib.pyplot as plt
+fig1 = plot_sfs(sfs.get_metric_dict(), kind='std_dev')
+plt.title('Sequential Forward Selection (w. StdErr)')
+plt.grid()
+plt.show()
+###########################################################################################
+###########################################################################################
+##########
+
+
+
+
+
+
+
+
+
+
+#################################################################################
+
+all_acc=[]
+thresholds_C=[]
+no_of_features=[]
+
+X_train=X
+Y_train=Y
+
+ff= list(acs_sorted.iloc[0:64,4].values)
+
+for n_features in ff:
+
+
+    # Sequential Forward Selection(sfs)
+    sfs = SFS(SVC(kernel ='rbf',C=1,gamma='auto'),
+               k_features=49,                # no. of features to select
+               forward=True,floating=True, # This is for "Forward Selection",  For "Backward Selection" Make both of them False, For "Stepwise Regression" make them both False
+               scoring = 'accuracy',            # for classification, it can be accuracy, precision, recall, f1-score, etc.
+               cv = 0)                          # cv is k fold cross validation
+
+
+
+#    s=sfs.subsets_
+    ##################   Cross Validation  SVM  ############################################
+
+    
+    from sklearn.preprocessing import StandardScaler
+    sc_X = StandardScaler()
+    X_train = sc_X.fit_transform(X)
+    X_test1= sc_X.transform(X_test)
+    
+    
+    sfs.fit(X_train, Y_train)
+    X_indices= list(sfs.k_feature_names_)   # to get the final set of features
+    
+    X_indices1=[]
+    for j in range(len(X_indices)):
+        X_indices1.append(int(X_indices[j]))
+    
+    
+    ############################################
+    X_train= X_train[:, X_indices1]
+    X_test1= X_test1[:, X_indices1]
+    
+    
+#    for i in range(1):
+        
+    acs=[]
+    
+    from sklearn.svm import SVC
+    svc_reg = SVC(kernel ='rbf',C=1,gamma='auto')
+    svc_reg.fit(X_train,Y_train)
+
+    Y_pred = svc_reg.predict(X_test1)
+
+    
+    from sklearn.metrics import confusion_matrix
+    cmf= confusion_matrix(Y_test,Y_pred)
+    
+    from sklearn.metrics import accuracy_score
+    acs.append(accuracy_score(Y_test,Y_pred))
+
+    
+    acs1 =np.mean(acs) 
+    acs1=acs1*100
+    
+    std=np.std(acs)
+    std=std*100
+    
+    no_of_features.append(n_features)
+    thresholds_C.append(X_indices1)
+    acs1 =np.mean(acs) 
+    acs1=acs1*100
+    
+    std=np.std(acs)
+    std=std*100
+    
+    all_acc.append([acs1,std])
+    
     
     
     
