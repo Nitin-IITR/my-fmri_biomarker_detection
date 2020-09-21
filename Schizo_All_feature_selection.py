@@ -43,12 +43,6 @@ healthy_series_all222= df_train1[16*150:32*150].reset_index(drop=True)
 
 
 
-
-
-
-
-
-
 ####################################################################################
 ####################################################################################
 ####################  Kbest Method #################################
@@ -101,24 +95,6 @@ for feature_num in range(1,no_of_features):
     std=std*100
     
     acs_all.append([acs1,std])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -250,16 +226,6 @@ for C in ff:
     
     all_acc.append([acs1,std])
     
-    
-    
-    
-    
-    
-    
-
-
-
-
 
 
 ####################################################################################
@@ -430,67 +396,6 @@ acs_sorted= acs_and_thers.sort_values(by=['acs','features'], ascending=[False,Tr
 acs_sorted= acs_sorted.reset_index()
 
 #acs_sorted.to_csv(r'D:\Nitin Python\fMRI ROI\Schizo and Healthy\ROI files needed\thershold_and_acc_for_schizo_corr_t_test_222Regions_Linear_SVC_feature_selection.csv')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -685,13 +590,6 @@ plt.show()
 
 
 
-
-
-
-
-
-
-
 #################################################################################
 
 all_acc=[]
@@ -773,20 +671,4 @@ for n_features in ff:
     all_acc.append([acs1,std])
     
     
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
